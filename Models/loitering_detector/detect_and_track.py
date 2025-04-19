@@ -76,13 +76,26 @@ def run_loitering_detection(video_path, alert_output_dict):
                         if track_id not in alert_output_dict:
                             alert_output_dict[track_id] = []
 
-                        alert_output_dict[track_id].append({
-                            "id": track_id,
-                            "title": "Loitering",
-                            "description": f"Loitering detected in {zone_name}",
-                            "location": "Lake",
-                            "timestamp": datetime.datetime.fromtimestamp(now).isoformat()
-                        })
+                        description = f"Loitering detected in {zone_name}"
+                        timestamp = datetime.datetime.fromtimestamp(now).isoformat()
+
+                        # Check if a similar alert already exists
+                        existing_alert = next(
+                            (alert for alert in alert_output_dict[track_id] if alert["description"] == description),
+                            None
+                        )
+
+                        if existing_alert:
+                            existing_alert["timestamp"] = timestamp  # Update the timestamp
+                        else:
+                            alert_output_dict[track_id].append({
+                                "id": track_id,
+                                "title": "Loitering",
+                                "description": description,
+                                "location": "Lake",
+                                "timestamp": timestamp
+                            })
+
                 else:
                     time_in_zone[track_id].pop(zone_name, None)
 
@@ -90,20 +103,20 @@ def run_loitering_detection(video_path, alert_output_dict):
             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 200, 0), 2)
             cv2.putText(frame, f"ID:{track_id}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
-        # Remove expired alerts
-        expired_alerts = []
-        for track_id, zones_alerted in active_alerts.items():
-            for zone_name, last_seen in zones_alerted.items():
-                if now - last_seen > ALERT_DURATION:
-                    expired_alerts.append((track_id, zone_name))
+        # # Remove expired alerts
+        # expired_alerts = []
+        # for track_id, zones_alerted in active_alerts.items():
+        #     for zone_name, last_seen in zones_alerted.items():
+        #         if now - last_seen > ALERT_DURATION:
+        #             expired_alerts.append((track_id, zone_name))
 
-        for tid, zname in expired_alerts:
-            if tid in active_alerts and zname in active_alerts[tid]:
-                del active_alerts[tid][zname]
-            if tid in active_alerts and not active_alerts[tid]:
-                del active_alerts[tid]
-            if tid in alert_output_dict:
-                del alert_output_dict[tid]
+        # for tid, zname in expired_alerts:
+        #     if tid in active_alerts and zname in active_alerts[tid]:
+        #         del active_alerts[tid][zname]
+        #     if tid in active_alerts and not active_alerts[tid]:
+        #         del active_alerts[tid]
+        #     if tid in alert_output_dict:
+        #         del alert_output_dict[tid]
 
         # Optional zone drawing
         for zone_name, polygon in zones.items():

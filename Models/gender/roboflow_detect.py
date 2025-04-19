@@ -1,64 +1,80 @@
 import cv2
 import numpy as np
+import time
+import datetime
+import os
 from inference_sdk import InferenceHTTPClient
 
-# Initialize webcam
-cap = cv2.VideoCapture(0)
+# Constants
+THRESHOLD_FRAMES = 3  # Number of continuous frames to trigger alert
 
-# Load Haar Cascade for face detection
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+def run_gender_alert_detection(video_path, alert_output_dict):
+    cap = cv2.VideoCapture(video_path)
+    
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-# Initialize Roboflow Inference Client
-CLIENT = InferenceHTTPClient(
-    api_url="https://detect.roboflow.com",
-    api_key="7dLWnQPCpvkW0nDutKWO"
-)
+    CLIENT = InferenceHTTPClient(
+        api_url="https://detect.roboflow.com",
+        api_key="7dLWnQPCpvkW0nDutKWO"
+    )
 
-alert_triggered = False  # To avoid spamming alerts
+    female_detected_count = 0
+    alert_triggered = False
+    frame_count = 0
 
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+        frame_count += 1
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
 
-    alert_triggered = False  # Reset alert for each frame
+        female_detected_this_frame = False
 
-    for (x, y, w, h) in faces:
-        # Draw rectangle around the face
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+        for (x, y, w, h) in faces:
+            face_img = frame[y:y+h, x:x+w]
+            face_img_path = f'temp_face_{frame_count}.png'
+            cv2.imwrite(face_img_path, face_img)
 
-        # Crop and save face image temporarily
-        face_img = frame[y:y+h, x:x+w]
-        face_img_path = 'demo.png'
-        cv2.imwrite(face_img_path, face_img)
+            result = CLIENT.infer(face_img_path, model_id="gender-detection-qiyyg/2")
 
-        # Run gender detection
-        result = CLIENT.infer(face_img_path, model_id="gender-detection-qiyyg/2")
+            if 'predictions' in result and result['predictions']:
+                prediction = result['predictions'][0]
+                gender = prediction['class']
+                confidence = prediction['confidence']
 
-        if 'predictions' in result and result['predictions']:
-            prediction = result['predictions'][0]
-            gender = prediction['class']
-            confidence = prediction['confidence']
-            label = f'{gender} ({confidence:.2f})'
+                if gender.lower() == 'female':
+                    female_detected_this_frame = True
+                    break  # only need one confirmed female
 
-            # Add label to frame
-            cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
+        if female_detected_this_frame:
+            female_detected_count += 1
+        else:
+            female_detected_count = 0
+            alert_triggered = False
 
-            # Trigger alert if gender is female
-            if gender.lower() == "female" and not alert_triggered:
-                cv2.putText(frame, "ALERT: Female Detected!", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
-                print("🚨 ALERT: Female Detected!")
-                alert_triggered = True  # Avoid multiple alerts for the same frame
+        if female_detected_count >= THRESHOLD_FRAMES and not alert_triggered:
+            alert_triggered = True
+            timestamp = datetime.datetime.now().isoformat()
 
-    # Display the frame
-    cv2.imshow('Real-time Gender Detection', frame)
+            alert_output_dict["99"] = alert_output_dict.get("99", [])
+            alert_output_dict["99"].append({
+                "id": "99",
+                "title": "Female Detected",
+                "description": f"Female detected in boys hostel.",
+                "location": "Main Entrance",  # You can customize this
+                "timestamp": timestamp
+            })
 
-    # Break loop on 'q' press
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+            print(f"[ALERT] Female detected continuously. Alert generated at {timestamp}")
 
-cap.release()
-cv2.destroyAllWindows()
+        # Optional: draw visuals
+        cv2.imshow("Gender Detection", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    # cv2.destroyAllWindows()
+

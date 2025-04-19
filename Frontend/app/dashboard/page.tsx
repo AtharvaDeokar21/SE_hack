@@ -1,17 +1,24 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import AlertCard, { type Alert } from "@/components/alert-card"
 import MapView from "@/components/map-view"
 import Timeline, { type TimelineEvent } from "@/components/timeline"
-import IncidentModal from "@/components/incident-modal"
 import { AlertSkeleton, MapSkeleton } from "@/components/skeleton-loader"
-import { generateMockAlerts, generateMockTimelineEvents } from "@/lib/utils"
 import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
 import { Shield } from "lucide-react"
+import axios from "axios"
+import { toast } from "@/components/ui/use-toast"
+import { ToastAction } from "@/components/ui/toast"
+
+// Backend URL - replace with your actual backend URL
+const BACKEND_URL = "http://127.0.0.1:5000//get_alerts"
+
+// Polling interval in milliseconds (30 seconds)
+const POLLING_INTERVAL = 30000
 
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth()
@@ -20,8 +27,9 @@ export default function DashboardPage() {
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [filteredAlerts, setFilteredAlerts] = useState<Alert[]>([])
   const [events, setEvents] = useState<TimelineEvent[]>([])
-  const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null)
   const [alertFilter, setAlertFilter] = useState<"all" | "critical" | "medium" | "resolved">("all")
+  const [pollingEnabled, setPollingEnabled] = useState(true)
+  const [lastPolled, setLastPolled] = useState<Date | null>(null)
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -30,18 +38,111 @@ export default function DashboardPage() {
     }
   }, [user, authLoading, router])
 
+  // Function to convert backend alert format to our Alert type
+  const convertBackendAlert = (backendAlert: any, severity: "critical" | "medium" | "resolved" = "critical"): Alert => {
+    return {
+      id: backendAlert.id || `alert-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      title: backendAlert.title || "Unknown Alert",
+      description: backendAlert.description || "No description provided",
+      location: backendAlert.location || "Unknown Location",
+      locationType: backendAlert.location === "Lake" || backendAlert.location === "Cabin" ? "outside" : "within",
+      timestamp: new Date(backendAlert.timestamp || Date.now()),
+      severity: severity,
+    }
+  }
+
+  // Function to fetch alerts from backend
+  const fetchAlerts = useCallback(async () => {
+    try {
+      const response = await axios.get(BACKEND_URL)
+      const data = response.data
+
+      // Update last polled timestamp
+      setLastPolled(new Date())
+
+      // Check if we have any new alerts
+      if (Object.keys(data).length > 0) {
+        // Process the data - it's grouped by some ID
+        const newAlerts: Alert[] = []
+
+        Object.entries(data).forEach(([_, alertsArray]: [string, any]) => {
+          if (Array.isArray(alertsArray)) {
+            alertsArray.forEach((backendAlert) => {
+              // Check if this alert already exists in our state
+              const alertExists = alerts.some(
+                (existingAlert) =>
+                  existingAlert.id === backendAlert.id &&
+                  existingAlert.timestamp.getTime() === new Date(backendAlert.timestamp).getTime(),
+              )
+
+              if (!alertExists) {
+                newAlerts.push(convertBackendAlert(backendAlert))
+              }
+            })
+          }
+        })
+
+        // If we have new alerts, update the state
+        if (newAlerts.length > 0) {
+          // Add new alerts to the state
+          setAlerts((prevAlerts) => [...newAlerts, ...prevAlerts])
+
+          // Create timeline events for the new alerts
+          const newEvents: TimelineEvent[] = newAlerts.map((alert) => ({
+            id: `event-${alert.id}`,
+            title: alert.title,
+            description: `${alert.description} at ${alert.location}`,
+            timestamp: alert.timestamp,
+            type: "alert",
+          }))
+
+          // Add new events to the timeline
+          setEvents((prevEvents) => [...newEvents, ...prevEvents])
+
+          // Show a toast notification for each new alert
+          newAlerts.forEach((alert) => {
+            toast({
+              title: alert.title,
+              description: `${alert.description} at ${alert.location}`,
+              variant: "destructive",
+              action: <ToastAction altText="View">View</ToastAction>,
+            })
+          })
+        }
+      }
+
+      // Set loading to false after first fetch
+      if (isLoading) {
+        setIsLoading(false)
+      }
+    } catch (error) {
+      console.error("Error fetching alerts:", error)
+      // Set loading to false even if there's an error
+      if (isLoading) {
+        setIsLoading(false)
+      }
+    }
+  }, [alerts, isLoading])
+
+  // Initial data fetch and set up polling
   useEffect(() => {
-    // Simulate API loading
-    const timer = setTimeout(() => {
-      const allAlerts = generateMockAlerts(12)
-      setAlerts(allAlerts)
-      setEvents(generateMockTimelineEvents(10))
-      setIsLoading(false)
-    }, 1500)
+    if (!user) return
 
-    return () => clearTimeout(timer)
-  }, [])
+    // Initial fetch
+    fetchAlerts()
 
+    // Set up interval
+    const intervalId = setInterval(() => {
+      if (pollingEnabled) {
+        fetchAlerts()
+      }
+    }, POLLING_INTERVAL)
+
+    // Clean up
+    return () => clearInterval(intervalId)
+  }, [fetchAlerts, pollingEnabled, user])
+
+  // Filter alerts based on user role and severity
   useEffect(() => {
     if (!user || !alerts.length) return
 
@@ -81,6 +182,25 @@ export default function DashboardPage() {
   // Don't render dashboard content if user is not authenticated
   if (!user) {
     return null
+  }
+
+  const handleAlertClick = (alert: Alert) => {
+    // Just log the alert for now
+    console.log("Alert clicked:", alert)
+  }
+
+  // Calculate time until next poll
+  const getTimeUntilNextPoll = () => {
+    if (!lastPolled) return "Waiting for first poll..."
+
+    const nextPollTime = new Date(lastPolled.getTime() + POLLING_INTERVAL)
+    const now = new Date()
+    const diffMs = nextPollTime.getTime() - now.getTime()
+
+    if (diffMs <= 0) return "Polling..."
+
+    const diffSecs = Math.floor(diffMs / 1000)
+    return `Next poll in ${diffSecs}s`
   }
 
   return (
@@ -124,7 +244,18 @@ export default function DashboardPage() {
               transition={{ duration: 0.5, delay: 0.1 }}
             >
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-                <h2 className="text-xl font-bold">Recent Alerts</h2>
+                <div className="flex items-center">
+                  <h2 className="text-xl font-bold">Recent Alerts</h2>
+                  {pollingEnabled && (
+                    <div className="ml-2 flex items-center">
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-alert-critical opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-alert-critical"></span>
+                      </span>
+                      <span className="ml-2 text-xs text-muted-foreground">Live (30s) - {getTimeUntilNextPoll()}</span>
+                    </div>
+                  )}
+                </div>
                 <Tabs defaultValue="all" className="w-full md:w-auto">
                   <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="all" onClick={() => setAlertFilter("all")}>
@@ -148,7 +279,7 @@ export default function DashboardPage() {
                   Array.from({ length: 3 }).map((_, i) => <AlertSkeleton key={i} />)
                 ) : filteredAlerts.length > 0 ? (
                   filteredAlerts.map((alert) => (
-                    <AlertCard key={alert.id} alert={alert} onClick={() => setSelectedAlert(alert)} />
+                    <AlertCard key={alert.id} alert={alert} onClick={() => handleAlertClick(alert)} />
                   ))
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
@@ -166,11 +297,7 @@ export default function DashboardPage() {
               transition={{ duration: 0.5, delay: 0.2 }}
             >
               <h2 className="text-xl font-bold mb-4">Facility Map</h2>
-              {isLoading ? (
-                <MapSkeleton />
-              ) : (
-                <MapView alerts={filteredAlerts} onAlertClick={(alert) => setSelectedAlert(alert)} />
-              )}
+              {isLoading ? <MapSkeleton /> : <MapView alerts={filteredAlerts} onAlertClick={handleAlertClick} />}
             </motion.div>
           </div>
 
@@ -196,15 +323,15 @@ export default function DashboardPage() {
                     </div>
                   ))}
                 </div>
-              ) : (
+              ) : events.length > 0 ? (
                 <Timeline events={events} />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">No activity recorded yet</div>
               )}
             </motion.div>
           </div>
         </div>
       </div>
-
-      {selectedAlert && <IncidentModal alert={selectedAlert} onClose={() => setSelectedAlert(null)} />}
     </div>
   )
 }

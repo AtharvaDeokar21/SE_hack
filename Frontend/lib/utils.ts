@@ -13,9 +13,9 @@ export function generateMockAlerts(count = 10) {
     { name: "West Wing", type: "within" as const },
     { name: "North Block", type: "within" as const },
     { name: "South Block", type: "within" as const },
-    { name: "Parking Lot", type: "outside" as const },
-    { name: "Perimeter Fence", type: "outside" as const },
-    { name: "Cafeteria", type: "within" as const },
+    { name: "Lake", type: "outside" as const },
+    { name: "Cabin", type: "outside" as const },
+    { name: "Quadrangle", type: "within" as const },
     { name: "Library", type: "within" as const },
   ]
 
@@ -71,6 +71,21 @@ export function generateMockTimelineEvents(count = 15) {
       type: "system" as const,
       title: "Camera Offline",
       description: "Camera #12 in West Wing went offline",
+    },
+    {
+      type: "alert" as const,
+      title: "Loitering",
+      description: "Individual lingering near Lake area",
+    },
+    {
+      type: "alert" as const,
+      title: "Suspicious Activity",
+      description: "Unusual behavior detected at Cabin",
+    },
+    {
+      type: "alert" as const,
+      title: "Gathering",
+      description: "Multiple individuals gathered at Quadrangle",
     },
   ]
 

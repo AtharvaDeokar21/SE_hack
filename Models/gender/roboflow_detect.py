@@ -4,6 +4,7 @@ import time
 import datetime
 import os
 from inference_sdk import InferenceHTTPClient
+from Backend.whatsapp_alerts import send_whatsapp_alert
 
 # Constants
 THRESHOLD_FRAMES = 3  # Number of continuous frames to trigger alert
@@ -72,6 +73,7 @@ def run_gender_alert_detection(video_path, alert_output_dict):
             })
 
             print(f"[ALERT] Female detected continuously. Alert generated at {timestamp}")
+            send_whatsapp_alert("Alert! Female detected at Main Entrance in Boys Hostel.")
             break
 
         # Optional: draw visuals

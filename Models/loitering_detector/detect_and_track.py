@@ -16,7 +16,8 @@ def is_inside_zone(x, y, zone_polygon):
     return cv2.pointPolygonTest(zone_polygon.astype(np.int32), (x, y), False) >= 0
 
 def run_loitering_detection(video_path, alert_output_dict):
-    model = YOLO("C:\\Atharva\\SE_hack\\Models\\loitering_detector\\yolov8n.pt")
+    # model = YOLO("C:\\Atharva\\SE_hack\\Models\\loitering_detector\\yolov8n.pt")
+    model = YOLO("D:\\Hackathons\\SE_hack\\Models\\loitering_detector\\yolov8n.pt")
     tracker = DeepSort()
     
     cap = cv2.VideoCapture(video_path)
@@ -28,7 +29,8 @@ def run_loitering_detection(video_path, alert_output_dict):
     frame_height, frame_width = frame.shape[:2]
 
     # Load zones
-    with open("C:\\Atharva\\SE_hack\\Models\\loitering_detector\\zone_config.json") as f:
+    with open("D:\\Hackathons\\SE_hack\\Models\\loitering_detector\\zone_config.json") as f:
+    # with open("C:\\Atharva\\SE_hack\\Models\\loitering_detector\\zone_config.json") as f:
         config = json.load(f)
         zones = {
             zone_name: np.array([[int(x * frame_width), int(y * frame_height)] for x, y in points])

@@ -31,14 +31,14 @@ if INFERENCE_AVAILABLE and ROBOFLOW_API_KEY:
         print("Using Roboflow model with API key.")
     except Exception as e:
         print(f"Failed to load Roboflow model: {e}. Falling back to YOLOv8.")
-        model = YOLO('yolov8s.pt')  # Use smaller model for faster inference
+        model = YOLO('C:\\path\\to\\yolov8s.pt')  # Use double backslashes
 else:
     if not INFERENCE_AVAILABLE:
         print("Roboflow model not used due to missing inference-sdk.")
     elif not ROBOFLOW_API_KEY:
         print("ROBOFLOW_API_KEY not found in .env file.")
     print("Using YOLOv8 model.")
-    model = YOLO('yolov8s.pt')  # Use smaller model for faster inference
+    model = YOLO('C:\\path\\to\\yolov8s.pt')  # Use double backslashes
 
 # YOLOv8 COCO class names (for yolov8s.pt)
 COCO_CLASSES = [
@@ -64,20 +64,24 @@ heat_map_annotator = sv.HeatMapAnnotator()
 OVERLAP_THRESHOLD_CROWDED = 0.5  # IoU > 50% for crowded
 OVERLAP_THRESHOLD_MODERATE = 0.2  # IoU > 20% for moderately crowded
 PERSON_COUNT_THRESHOLD = 10  # Max people before considering crowded
-RESTRICTED_ZONE = sv.PolygonZone(polygon=np.array([[0, 0], [300, 0], [300, 300], [0, 300]]))  # Example restricted area
 
-# Plateau and linear detection parameters
+# Alert duration
+ALERT_DURATION = 60  # seconds
+
+# Plateau detection parameters
 PLATEAU_WINDOW = 30  # Seconds to check for plateau
-PLATEAU_TOLERANCE = 1  # Allow ±1 variation in count
-LINEAR_WINDOW = 30  # Seconds to check for linear increase
-LINEAR_SLOPE_THRESHOLD = 0.1  # Min slope (objects/second) for linear increase
+PLATEAU_TOLERANCE = 1  # Allow ±1 variation in person count
+IOU_TOLERANCE = 0.05  # Allow ±0.05 variation in IoU
 HISTORY_SIZE = 300  # Max frames to store (~10s at 30fps)
 
 # Log file setup
 LOG_FILE = "surveillance_log.txt"
 
-# History for plateau and linear detection
-count_history = deque(maxlen=HISTORY_SIZE)  # (timestamp, person_count, object_count)
+# Alert output dictionary
+alert_output_dict = {}
+
+# History for plateau detection
+count_history = deque(maxlen=HISTORY_SIZE)  # (timestamp, person_count, avg_iou)
 
 def log_event(timestamp, message):
     """Log events with timestamps to a file."""
@@ -127,11 +131,12 @@ def calculate_iou(box1, box2):
     # Calculate IoU
     return intersection / union if union > 0 else 0.0
 
-def calculate_crowding_level(detections, frame, timestamp):
-    """Calculate crowding level based on IoU and person count, return alerts."""
+def calculate_crowding_level(detections, frame, timestamp, frame_count, alert_output_dict):
+    """Calculate crowding level and detect plateau, store alerts in alert_output_dict."""
     person_detections = detections[detections.class_id == 0]  # Class 0 = person
     num_people = len(person_detections)
     alerts = []
+    now = time.time()
     
     # Calculate IoU for overlapping bounding boxes
     if num_people > 1:
@@ -146,87 +151,84 @@ def calculate_crowding_level(detections, frame, timestamp):
     else:
         avg_iou = 0.0
     
-    # Determine crowding level
+    # Update count history
+    count_history.append((now, num_people, avg_iou))
+    
+    # Determine crowding level and store alerts
+    crowding_id = f"crowding_{frame_count}_{timestamp.replace(' ', '_')}"
     if avg_iou > OVERLAP_THRESHOLD_CROWDED or num_people > PERSON_COUNT_THRESHOLD:
         crowding_level = "Crowded"
         alert = "ALERT: Overcrowding detected!"
         alerts.append(alert)
         log_event(timestamp, f"{crowding_level} - {alert} (IoU: {avg_iou:.2f}, People: {num_people})")
+        if crowding_id not in alert_output_dict:
+            alert_output_dict[crowding_id] = []
+        alert_output_dict[crowding_id].append({
+            "id": crowding_id,
+            "title": "Overcrowding",
+            "description": f"Overcrowding detected with IoU: {avg_iou:.2f}, People: {num_people}",
+            "location": "Surveillance Area",
+            "timestamp": datetime.fromtimestamp(now).isoformat(),
+            "last_seen": now
+        })
     elif avg_iou > OVERLAP_THRESHOLD_MODERATE:
         crowding_level = "Moderately Crowded"
         alert = "ALERT: Moderate crowding detected."
         alerts.append(alert)
         log_event(timestamp, f"{crowding_level} - {alert} (IoU: {avg_iou:.2f}, People: {num_people})")
+        if crowding_id not in alert_output_dict:
+            alert_output_dict[crowding_id] = []
+        alert_output_dict[crowding_id].append({
+            "id": crowding_id,
+            "title": "Moderate Crowding",
+            "description": f"Moderate crowding detected with IoU: {avg_iou:.2f}, People: {num_people}",
+            "location": "Surveillance Area",
+            "timestamp": datetime.fromtimestamp(now).isoformat(),
+            "last_seen": now
+        })
     else:
         crowding_level = "Normal"
         log_event(timestamp, f"{crowding_level} (IoU: {avg_iou:.2f}, People: {num_people})")
     
+    # # Check for plateau in crowding metrics
+    # recent_history = [(t, p, i) for t, p, i in count_history if now - t <= PLATEAU_WINDOW]
+    # if len(recent_history) >= 2:
+    #     person_counts = [p for _, p, _ in recent_history]
+    #     iou_values = [i for _, _, i in recent_history]
+    #     person_range = max(person_counts) - min(person_counts)
+    #     iou_range = max(iou_values) - min(iou_values)
+        
+    #     plateau_id = f"plateau_{frame_count}_{timestamp.replace(' ', '_')}"
+    #     if person_range <= PLATEAU_TOLERANCE and iou_range <= IOU_TOLERANCE:
+    #         alert = f"ALERT: Plateau detected with People: {num_people}, IoU: {avg_iou:.2f}"
+    #         alerts.append(alert)
+    #         log_event(timestamp, f"Plateau - {alert}")
+    #         if plateau_id not in alert_output_dict:
+    #             alert_output_dict[plateau_id] = []
+    #         alert_output_dict[plateau_id].append({
+    #             "id": plateau_id,
+    #             "title": "Plateau Detection",
+    #             "description": f"Stable crowding metrics detected: People: {num_people}, IoU: {avg_iou:.2f}",
+    #             "location": "Surveillance Area",
+    #             "timestamp": datetime.fromtimestamp(now).isoformat(),
+    #             "last_seen": now
+    #         })
+    
     return crowding_level, avg_iou, alerts
 
-def detect_hazards(detections, frame, timestamp):
-    """Detect hazards or rule violations, return alerts."""
-    violations = []
-    alerts = []
-    for i in range(len(detections)):
-        # Create a single-detection Detections object
-        single_detection = sv.Detections(
-            xyxy=detections.xyxy[i:i+1],
-            confidence=detections.confidence[i:i+1],
-            class_id=detections.class_id[i:i+1],
-            data={k: v[i:i+1] for k, v in detections.data.items()}
-        )
-        if RESTRICTED_ZONE.trigger(detections=single_detection):
-            class_name = COCO_CLASSES[single_detection.class_id[0]] if single_detection.class_id[0] < len(COCO_CLASSES) else 'Unknown'
-            violation = f"Violation: {class_name} in restricted zone"
-            alert = f"ALERT: {class_name} detected in restricted zone!"
-            violations.append(violation)
-            alerts.append(alert)
-            log_event(timestamp, violation)
-    return violations, alerts
+def remove_expired_alerts(alert_output_dict):
+    """Remove alerts that have expired based on ALERT_DURATION."""
+    now = time.time()
+    expired_ids = []
+    for alert_id, alerts in list(alert_output_dict.items()):
+        for alert in alerts:
+            if now - alert["last_seen"] > ALERT_DURATION:
+                expired_ids.append(alert_id)
+                break
+    for alert_id in expired_ids:
+        del alert_output_dict[alert_id]
 
-def check_plateau_and_linear(person_count, object_count, timestamp, avg_iou):
-    """Check for ReLU-like plateau or linear increase in counts."""
-    current_time = time.time()
-    count_history.append((current_time, person_count, object_count))
-    
-    # Filter history within window
-    time_window = max(PLATEAU_WINDOW, LINEAR_WINDOW)
-    recent_history = [(t, p, o) for t, p, o in count_history if current_time - t <= time_window]
-    
-    if len(recent_history) < 2:
-        return None
-    
-    # Check for plateau
-    person_counts = [p for _, p, _ in recent_history]
-    object_counts = [o for _, o, _ in recent_history]
-    person_range = max(person_counts) - min(person_counts)
-    object_range = max(object_counts) - min(object_counts)
-    
-    if person_range <= PLATEAU_TOLERANCE and object_range <= PLATEAU_TOLERANCE:
-        reason = "Plateau Detected"
-        output = f"People: {person_count}, Objects: {object_count}, Reason: {reason}, Timestamp: {timestamp}"
-        return output
-    
-    # Check for linear increase
-    times = np.array([t for t, _, _ in recent_history])
-    person_trend = np.array(person_counts)
-    object_trend = np.array(object_counts)
-    
-    # Fit linear regression for person and object counts
-    if len(times) > 1:
-        slope_person, _ = np.polyfit(times - times[0], person_trend, 1)
-        slope_object, _ = np.polyfit(times - times[0], object_trend, 1)
-        
-        if slope_person > LINEAR_SLOPE_THRESHOLD or slope_object > LINEAR_SLOPE_THRESHOLD:
-            reason = "ALERT: Linear increase in people/objects detected!"
-            output = f"People: {person_count}, Objects: {object_count}, Alert: {reason}, IoU: {avg_iou:.2f}, Timestamp: {timestamp}"
-            log_event(timestamp, output)
-            print(output)
-            sys.exit(0)  # Terminate immediately
-    
-    return None
-
-def process_frame(frame, frame_count):
+def process_frame(frame, frame_count, alert_output_dict):
     """Process a single video frame."""
     # Get current timestamp
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -249,21 +251,11 @@ def process_frame(frame, frame_count):
     # Filter detections (e.g., confidence > 0.5)
     detections = detections[detections.confidence > 0.5]
     
-    # Count people and objects
-    person_count = len(detections[detections.class_id == 0])  # Class 0 = person
-    object_count = len(detections[detections.class_id != 0])  # All other classes
-    
     # Calculate crowding level and get alerts
-    crowding_level, avg_iou, crowding_alerts = calculate_crowding_level(detections, frame, timestamp)
+    crowding_level, avg_iou, crowding_alerts = calculate_crowding_level(detections, frame, timestamp, frame_count, alert_output_dict)
     
-    # Detect hazards and get alerts
-    violations, violation_alerts = detect_hazards(detections, frame, timestamp)
-    
-    # Check for plateau or linear increase
-    tailored_output = check_plateau_and_linear(person_count, object_count, timestamp, avg_iou)
-    if tailored_output:
-        log_event(timestamp, tailored_output)
-        crowding_alerts.append(tailored_output)
+    # Remove expired alerts
+    remove_expired_alerts(alert_output_dict)
     
     # Annotate frame with bounding boxes and labels
     labels = [f"{COCO_CLASSES[class_id] if class_id < len(COCO_CLASSES) else 'Unknown'} ({conf:.2f})" 
@@ -275,22 +267,19 @@ def process_frame(frame, frame_count):
     cv2.putText(annotated_frame, f"Timestamp: {timestamp}", 
                 (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
     
-    # Add crowding level and violations text
+    # Add crowding level text
     cv2.putText(annotated_frame, f"Crowding: {crowding_level} (IoU: {avg_iou:.2f})", 
                 (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-    for i, violation in enumerate(violations):
-        cv2.putText(annotated_frame, violation, (10, 90 + i * 30), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
     
     # Add alert pop-ups
-    all_alerts = crowding_alerts + violation_alerts
+    all_alerts = crowding_alerts
     for i, alert in enumerate(all_alerts):
         draw_alert_box(annotated_frame, alert, position=(10, 150 + i * 60))
     
     # Generate and annotate heatmap
     heatmap_frame = heat_map_annotator.annotate(scene=frame.copy(), detections=detections)
     
-    return annotated_frame, heatmap_frame, tailored_output
+    return annotated_frame, heatmap_frame
 
 def get_video_path():
     """Prompt user for video file path and validate it."""
@@ -331,7 +320,7 @@ def main():
                 break
             
             # Process frame
-            annotated_frame, heatmap_frame, tailored_output = process_frame(frame, frame_count)
+            annotated_frame, heatmap_frame = process_frame(frame, frame_count, alert_output_dict)
             
             # Combine annotated and heatmap frames
             combined_frame = np.hstack((annotated_frame, heatmap_frame))
@@ -351,6 +340,9 @@ def main():
         # Release resources
         cap.release()
         cv2.destroyAllWindows()
+    
+    # Print final alerts
+    print("Final Alerts:", alert_output_dict)
 
 if __name__ == "__main__":
     main()

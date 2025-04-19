@@ -72,6 +72,21 @@ export function generateMockTimelineEvents(count = 15) {
       title: "Camera Offline",
       description: "Camera #12 in West Wing went offline",
     },
+    {
+      type: "alert" as const,
+      title: "Loitering",
+      description: "Individual lingering near Lake area",
+    },
+    {
+      type: "alert" as const,
+      title: "Suspicious Activity",
+      description: "Unusual behavior detected at Cabin",
+    },
+    {
+      type: "alert" as const,
+      title: "Gathering",
+      description: "Multiple individuals gathered at Quadrangle",
+    },
   ]
 
   return Array.from({ length: count }).map((_, i) => {

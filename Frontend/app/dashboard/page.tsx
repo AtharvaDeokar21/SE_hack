@@ -7,7 +7,6 @@ import AlertCard, { type Alert } from "@/components/alert-card"
 import MapView from "@/components/map-view"
 import Timeline, { type TimelineEvent } from "@/components/timeline"
 import { AlertSkeleton, MapSkeleton } from "@/components/skeleton-loader"
-import { generateMockAlerts, generateMockTimelineEvents } from "@/lib/utils"
 import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
 import { Shield } from "lucide-react"
@@ -16,7 +15,10 @@ import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 
 // Backend URL - replace with your actual backend URL
-const BACKEND_URL = "/api/alerts"
+const BACKEND_URL = "http://127.0.0.1:5000//get_alerts"
+
+// Polling interval in milliseconds (30 seconds)
+const POLLING_INTERVAL = 30000
 
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth()
@@ -27,6 +29,7 @@ export default function DashboardPage() {
   const [events, setEvents] = useState<TimelineEvent[]>([])
   const [alertFilter, setAlertFilter] = useState<"all" | "critical" | "medium" | "resolved">("all")
   const [pollingEnabled, setPollingEnabled] = useState(true)
+  const [lastPolled, setLastPolled] = useState<Date | null>(null)
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -34,19 +37,6 @@ export default function DashboardPage() {
       router.push("/login?callbackUrl=/dashboard")
     }
   }, [user, authLoading, router])
-
-  // Initial data load
-  useEffect(() => {
-    // Simulate API loading
-    const timer = setTimeout(() => {
-      const allAlerts = generateMockAlerts(12)
-      setAlerts(allAlerts)
-      setEvents(generateMockTimelineEvents(10))
-      setIsLoading(false)
-    }, 1500)
-
-    return () => clearTimeout(timer)
-  }, [])
 
   // Function to convert backend alert format to our Alert type
   const convertBackendAlert = (backendAlert: any, severity: "critical" | "medium" | "resolved" = "critical"): Alert => {
@@ -66,6 +56,9 @@ export default function DashboardPage() {
     try {
       const response = await axios.get(BACKEND_URL)
       const data = response.data
+
+      // Update last polled timestamp
+      setLastPolled(new Date())
 
       // Check if we have any new alerts
       if (Object.keys(data).length > 0) {
@@ -117,20 +110,33 @@ export default function DashboardPage() {
           })
         }
       }
+
+      // Set loading to false after first fetch
+      if (isLoading) {
+        setIsLoading(false)
+      }
     } catch (error) {
       console.error("Error fetching alerts:", error)
+      // Set loading to false even if there's an error
+      if (isLoading) {
+        setIsLoading(false)
+      }
     }
-  }, [alerts])
+  }, [alerts, isLoading])
 
-  // Set up polling
+  // Initial data fetch and set up polling
   useEffect(() => {
-    if (!pollingEnabled || !user) return
+    if (!user) return
 
     // Initial fetch
     fetchAlerts()
 
     // Set up interval
-    const intervalId = setInterval(fetchAlerts, 5000)
+    const intervalId = setInterval(() => {
+      if (pollingEnabled) {
+        fetchAlerts()
+      }
+    }, POLLING_INTERVAL)
 
     // Clean up
     return () => clearInterval(intervalId)
@@ -183,6 +189,20 @@ export default function DashboardPage() {
     console.log("Alert clicked:", alert)
   }
 
+  // Calculate time until next poll
+  const getTimeUntilNextPoll = () => {
+    if (!lastPolled) return "Waiting for first poll..."
+
+    const nextPollTime = new Date(lastPolled.getTime() + POLLING_INTERVAL)
+    const now = new Date()
+    const diffMs = nextPollTime.getTime() - now.getTime()
+
+    if (diffMs <= 0) return "Polling..."
+
+    const diffSecs = Math.floor(diffMs / 1000)
+    return `Next poll in ${diffSecs}s`
+  }
+
   return (
     <div className="min-h-screen pt-24 pb-16 px-4">
       <div className="container mx-auto max-w-7xl">
@@ -232,7 +252,7 @@ export default function DashboardPage() {
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-alert-critical opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-alert-critical"></span>
                       </span>
-                      <span className="ml-2 text-xs text-muted-foreground">Live</span>
+                      <span className="ml-2 text-xs text-muted-foreground">Live (30s) - {getTimeUntilNextPoll()}</span>
                     </div>
                   )}
                 </div>
@@ -303,8 +323,10 @@ export default function DashboardPage() {
                     </div>
                   ))}
                 </div>
-              ) : (
+              ) : events.length > 0 ? (
                 <Timeline events={events} />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">No activity recorded yet</div>
               )}
             </motion.div>
           </div>

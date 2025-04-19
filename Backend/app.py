@@ -4,6 +4,7 @@ import sys
 import os
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from flask_cors import CORS
 
 # Ensure Models folder is in path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -11,6 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Models.loitering_detector.detect_and_track import run_loitering_detection, alert_data
 
 app = Flask(__name__)
+CORS(app)
 
 # Use absolute path for the folder to watch
 VIDEO_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), 'location', 'lake'))

@@ -55,6 +55,33 @@ export default function MapView({ alerts, onAlertClick }: MapViewProps) {
           strokeWidth="0.2"
           strokeDasharray="1,1"
         />
+
+        {/* Lake (outside) */}
+        <circle cx="90" cy="90" r="8" fill="#235789" fillOpacity="0.3" stroke="#235789" strokeWidth="0.5" />
+        <text x="90" y="90" textAnchor="middle" dominantBaseline="middle" fill="#aaa" fontSize="2">
+          Lake
+        </text>
+
+        {/* Cabin (outside) */}
+        <rect x="12" y="7" width="6" height="6" fill="#654321" fillOpacity="0.3" stroke="#654321" strokeWidth="0.5" />
+        <text x="15" y="10" textAnchor="middle" dominantBaseline="middle" fill="#aaa" fontSize="2">
+          Cabin
+        </text>
+
+        {/* Quadrangle (inside) */}
+        <rect
+          x="45"
+          y="45"
+          width="10"
+          height="10"
+          fill="#2a9d8f"
+          fillOpacity="0.2"
+          stroke="#2a9d8f"
+          strokeWidth="0.3"
+        />
+        <text x="50" y="50" textAnchor="middle" dominantBaseline="middle" fill="#aaa" fontSize="2">
+          Quad
+        </text>
       </svg>
 
       {/* Alert markers */}

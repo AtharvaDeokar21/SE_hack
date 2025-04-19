@@ -11,6 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from Models.loitering_detector.detect_and_track import run_loitering_detection, alert_data
 from Models.Smart_Communal_Area_Surveillance.surveillance import main  # Import only main
+from Models.gender.roboflow_detect import run_gender_alert_detection  # ✅ Add import
 
 app = Flask(__name__)
 CORS(app)
@@ -18,11 +19,14 @@ CORS(app)
 # Global dictionary for all alerts
 alert_data = {}
 
-# Use absolute path for the folder to watch
+# Video folders
 VIDEO_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), 'location', 'lake'))
 VIDEO_FOLDER1 = os.path.abspath(os.path.join(os.path.dirname(__file__), 'location', 'quadrangle'))
+VIDEO_FOLDER2 = os.path.abspath(os.path.join(os.path.dirname(__file__), 'location', 'entrance'))  # ✅ New folder
+
 detection_running = False
 
+# Loitering Handler
 class VideoUploadHandler(FileSystemEventHandler):
     def on_created(self, event):
         global detection_running, alert_data
@@ -34,6 +38,7 @@ class VideoUploadHandler(FileSystemEventHandler):
             thread = Thread(target=run_loitering_detection, args=(event.src_path, alert_data))
             thread.start()
 
+# Surveillance Handler
 class SurveillanceVideoUploadHandler(FileSystemEventHandler):
     def on_created(self, event):
         global detection_running, alert_data
@@ -44,24 +49,40 @@ class SurveillanceVideoUploadHandler(FileSystemEventHandler):
             print(f"[INFO] Detected new video (surveillance): {event.src_path}")
             thread = Thread(target=main, args=(event.src_path, alert_data))
             thread.start()
-            thread.join()  # Wait for thread to finish before allowing new detection
+            thread.join()
+            detection_running = False
+
+# ✅ Gender Detection Handler
+class GenderVideoUploadHandler(FileSystemEventHandler):
+    def on_created(self, event):
+        global detection_running, alert_data
+        if event.is_directory or not event.src_path.endswith(('.mp4', '.avi')):
+            return
+        if not detection_running:
+            detection_running = True
+            print(f"[INFO] Detected new video (gender detection): {event.src_path}")
+            thread = Thread(target=run_gender_alert_detection, args=(event.src_path, alert_data))
+            thread.start()
+            thread.join()
             detection_running = False
 
 # Start observers
 observer = Observer()
 observer1 = Observer()
+observer2 = Observer()  # ✅ New observer
 
-# Ensure folder exists or create it
-if not os.path.exists(VIDEO_FOLDER):
-    os.makedirs(VIDEO_FOLDER)
+# Ensure folders exist
+for folder in [VIDEO_FOLDER, VIDEO_FOLDER1, VIDEO_FOLDER2]:
+    os.makedirs(folder, exist_ok=True)
 
-if not os.path.exists(VIDEO_FOLDER1):
-    os.makedirs(VIDEO_FOLDER1)
-
+# Schedule folder watchers
 observer.schedule(VideoUploadHandler(), path=VIDEO_FOLDER, recursive=False)
-observer.start()
 observer1.schedule(SurveillanceVideoUploadHandler(), path=VIDEO_FOLDER1, recursive=False)
+observer2.schedule(GenderVideoUploadHandler(), path=VIDEO_FOLDER2, recursive=False)  # ✅
+
+observer.start()
 observer1.start()
+observer2.start()
 
 @app.route('/get_alerts', methods=['GET'])
 def get_alerts():
@@ -78,3 +99,5 @@ if __name__ == '__main__':
         observer.join()
         observer1.stop()
         observer1.join()
+        observer2.stop()
+        observer2.join()

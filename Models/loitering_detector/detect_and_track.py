@@ -5,6 +5,7 @@ import numpy as np
 from ultralytics import YOLO
 from deep_sort_realtime.deepsort_tracker import DeepSort
 import datetime
+from Backend.whatsapp_alerts import send_whatsapp_alert
 # Global alert data (optional if you use your own dictionary)
 alert_data = {}
 
@@ -39,7 +40,7 @@ def run_loitering_detection(video_path, alert_output_dict):
 
     time_in_zone = {}
     active_alerts = {}
-
+    send_whatsapp_alert("Alert! Loitering detected near Lake." )
     while True:
         ret, frame = cap.read()
         if not ret:

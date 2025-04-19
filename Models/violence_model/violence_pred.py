@@ -3,9 +3,9 @@ import numpy as np
 import datetime
 from tensorflow.keras.models import load_model
 from tensorflow.keras.applications.resnet50 import preprocess_input
-
+from Backend.whatsapp_alerts import send_whatsapp_alert
 alert_data = {}
-
+flag = 0
 def predict_realtime_fast(video_path, alert_data, prediction_interval=10):
     model = load_model('D:\\Hackathons\\SE_hack\\Models\\violence_model\\violence_detection_resnet50.h5')
 
@@ -39,7 +39,7 @@ def predict_realtime_fast(video_path, alert_data, prediction_interval=10):
                         cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
 
             print(f"[{frame_count}] Prediction: {label} (Confidence: {confidence})")
-
+            
             if label == "Violent" and alert_data is not None:
                 now = datetime.datetime.now().isoformat()
                 alert_data[500] = [  # Optional: make this ID dynamic if needed
@@ -51,6 +51,9 @@ def predict_realtime_fast(video_path, alert_data, prediction_interval=10):
                         "timestamp": now
                     }
                 ]
+                if(flag == 0):
+                    send_whatsapp_alert("Alert! Violent activity detected in Lobby.")
+                    flag = 1
 
         cv2.imshow("Violence Detection", frame_disp)
         if cv2.waitKey(1) & 0xFF == ord('q'):

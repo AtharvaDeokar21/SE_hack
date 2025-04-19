@@ -1,0 +1,71 @@
+[2025-04-19 19:45:55] Normal (IoU: 0.07, People: 3)
+[2025-04-19 19:45:57] Normal (IoU: 0.07, People: 3)
+[2025-04-19 19:45:57] People: 3, Objects: 8, Reason: Plateau Detected, Timestamp: 2025-04-19 19:45:57
+[2025-04-19 19:45:57] Normal (IoU: 0.08, People: 3)
+[2025-04-19 19:45:57] People: 3, Objects: 8, Reason: Plateau Detected, Timestamp: 2025-04-19 19:45:57
+[2025-04-19 19:45:57] Normal (IoU: 0.07, People: 3)
+[2025-04-19 19:45:57] People: 3, Objects: 9, Reason: Plateau Detected, Timestamp: 2025-04-19 19:45:57
+[2025-04-19 19:45:57] Normal (IoU: 0.09, People: 3)
+[2025-04-19 19:45:57] People: 3, Objects: 6, Reason: Plateau Detected, Timestamp: 2025-04-19 19:45:57
+[2025-04-19 19:45:58] Normal (IoU: 0.10, People: 3)
+[2025-04-19 19:45:58] People: 3, Objects: 7, Reason: Plateau Detected, Timestamp: 2025-04-19 19:45:58
+[2025-04-19 19:45:58] Normal (IoU: 0.09, People: 4)
+[2025-04-19 19:45:58] People: 4, Objects: 4, Reason: Plateau Detected, Timestamp: 2025-04-19 19:45:58
+[2025-04-19 19:45:58] Normal (IoU: 0.11, People: 3)
+[2025-04-19 19:45:58] People: 3, Objects: 7, Reason: Plateau Detected, Timestamp: 2025-04-19 19:45:58
+[2025-04-19 19:45:58] Normal (IoU: 0.12, People: 3)
+[2025-04-19 19:45:58] People: 3, Objects: 7, Reason: Plateau Detected, Timestamp: 2025-04-19 19:45:58
+[2025-04-19 19:45:58] Normal (IoU: 0.09, People: 4)
+[2025-04-19 19:45:58] People: 4, Objects: 7, Reason: Plateau Detected, Timestamp: 2025-04-19 19:45:58
+[2025-04-19 19:45:59] Normal (IoU: 0.09, People: 4)
+[2025-04-19 19:45:59] People: 4, Objects: 7, Reason: Plateau Detected, Timestamp: 2025-04-19 19:45:59
+[2025-04-19 19:45:59] Normal (IoU: 0.09, People: 3)
+[2025-04-19 19:45:59] People: 3, Objects: 7, Reason: Plateau Detected, Timestamp: 2025-04-19 19:45:59
+[2025-04-19 19:45:59] Normal (IoU: 0.10, People: 3)
+[2025-04-19 19:45:59] People: 3, Objects: 9, Reason: Plateau Detected, Timestamp: 2025-04-19 19:45:59
+[2025-04-19 19:45:59] Normal (IoU: 0.09, People: 4)
+[2025-04-19 19:45:59] People: 4, Objects: 10, Reason: Plateau Detected, Timestamp: 2025-04-19 19:45:59
+[2025-04-19 19:45:59] Normal (IoU: 0.09, People: 4)
+[2025-04-19 19:45:59] People: 4, Objects: 9, Reason: Plateau Detected, Timestamp: 2025-04-19 19:45:59
+[2025-04-19 19:45:59] Normal (IoU: 0.09, People: 4)
+[2025-04-19 19:45:59] People: 4, Objects: 10, Reason: Plateau Detected, Timestamp: 2025-04-19 19:45:59
+[2025-04-19 19:46:00] Normal (IoU: 0.09, People: 4)
+[2025-04-19 19:46:00] People: 4, Objects: 10, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:00
+[2025-04-19 19:46:00] Normal (IoU: 0.12, People: 3)
+[2025-04-19 19:46:00] People: 3, Objects: 8, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:00
+[2025-04-19 19:46:00] Normal (IoU: 0.12, People: 3)
+[2025-04-19 19:46:00] People: 3, Objects: 7, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:00
+[2025-04-19 19:46:00] Normal (IoU: 0.12, People: 3)
+[2025-04-19 19:46:00] People: 3, Objects: 5, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:00
+[2025-04-19 19:46:01] Normal (IoU: 0.13, People: 3)
+[2025-04-19 19:46:01] People: 3, Objects: 5, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:01
+[2025-04-19 19:46:01] Normal (IoU: 0.12, People: 3)
+[2025-04-19 19:46:01] People: 3, Objects: 5, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:01
+[2025-04-19 19:46:01] Normal (IoU: 0.12, People: 3)
+[2025-04-19 19:46:01] People: 3, Objects: 5, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:01
+[2025-04-19 19:46:01] Normal (IoU: 0.12, People: 3)
+[2025-04-19 19:46:01] People: 3, Objects: 7, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:01
+[2025-04-19 19:46:02] Normal (IoU: 0.12, People: 3)
+[2025-04-19 19:46:02] People: 3, Objects: 6, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:02
+[2025-04-19 19:46:02] Normal (IoU: 0.12, People: 3)
+[2025-04-19 19:46:02] People: 3, Objects: 6, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:02
+[2025-04-19 19:46:02] Normal (IoU: 0.12, People: 3)
+[2025-04-19 19:46:02] People: 3, Objects: 5, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:02
+[2025-04-19 19:46:02] Normal (IoU: 0.12, People: 3)
+[2025-04-19 19:46:02] People: 3, Objects: 6, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:02
+[2025-04-19 19:46:02] Normal (IoU: 0.12, People: 3)
+[2025-04-19 19:46:02] People: 3, Objects: 5, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:02
+[2025-04-19 19:46:03] Normal (IoU: 0.12, People: 3)
+[2025-04-19 19:46:03] People: 3, Objects: 5, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:03
+[2025-04-19 19:46:03] Normal (IoU: 0.11, People: 3)
+[2025-04-19 19:46:03] People: 3, Objects: 4, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:03
+[2025-04-19 19:46:03] Normal (IoU: 0.12, People: 4)
+[2025-04-19 19:46:03] People: 4, Objects: 5, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:03
+[2025-04-19 19:46:04] Normal (IoU: 0.13, People: 4)
+[2025-04-19 19:46:04] People: 4, Objects: 6, Reason: Plateau Detected, Timestamp: 2025-04-19 19:46:04
+[2025-04-19 19:46:04] Normal (IoU: 0.14, People: 5)
+[2025-04-19 19:46:04] Normal (IoU: 0.14, People: 4)
+[2025-04-19 19:46:04] Normal (IoU: 0.15, People: 4)
+[2025-04-19 19:46:04] Normal (IoU: 0.09, People: 5)
+[2025-04-19 19:46:05] Normal (IoU: 0.09, People: 5)
+[2025-04-19 19:46:05] People: 5, Objects: 4, Alert: ALERT: Linear increase in people/objects detected!, IoU: 0.09, Timestamp: 2025-04-19 19:46:05

@@ -13,9 +13,9 @@ export function generateMockAlerts(count = 10) {
     { name: "West Wing", type: "within" as const },
     { name: "North Block", type: "within" as const },
     { name: "South Block", type: "within" as const },
-    { name: "Parking Lot", type: "outside" as const },
-    { name: "Perimeter Fence", type: "outside" as const },
-    { name: "Cafeteria", type: "within" as const },
+    { name: "Lake", type: "outside" as const },
+    { name: "Cabin", type: "outside" as const },
+    { name: "Quadrangle", type: "within" as const },
     { name: "Library", type: "within" as const },
   ]
 

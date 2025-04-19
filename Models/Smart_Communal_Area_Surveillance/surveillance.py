@@ -4,84 +4,71 @@ import supervision as sv
 from ultralytics import YOLO
 from datetime import datetime
 import os
-import sys
 from dotenv import load_dotenv
 from collections import deque
 import time
+import logging
 
-# Try importing inference-sdk, fall back to YOLOv8 if not available
-try:
-    from inference import get_roboflow_model
-    INFERENCE_AVAILABLE = True
-except ImportError:
-    print("Warning: 'inference-sdk' not installed. Falling back to YOLOv8 model. Install with: pip install inference-sdk")
-    INFERENCE_AVAILABLE = False
+# Set up logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Load environment variables from .env file
-load_dotenv()
 
-# Get Roboflow API key
-ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY")
 
 # Initialize model
-if INFERENCE_AVAILABLE and ROBOFLOW_API_KEY:
-    try:
-        # Load Roboflow model (replace with your model_id, e.g., "kitchen-surveillance/1")
-        model = get_roboflow_model(model_id="your-model-name/1", api_key=ROBOFLOW_API_KEY)
-        print("Using Roboflow model with API key.")
-    except Exception as e:
-        print(f"Failed to load Roboflow model: {e}. Falling back to YOLOv8.")
-        model = YOLO('C:\\path\\to\\yolov8s.pt')  # Use double backslashes
-else:
-    if not INFERENCE_AVAILABLE:
-        print("Roboflow model not used due to missing inference-sdk.")
-    elif not ROBOFLOW_API_KEY:
-        print("ROBOFLOW_API_KEY not found in .env file.")
-    print("Using YOLOv8 model.")
-    model = YOLO('C:\\path\\to\\yolov8s.pt')  # Use double backslashes
+# if INFERENCE_AVAILABLE and ROBOFLOW_API_KEY:
+#     try:
+#         model = get_roboflow_model(model_id="your-model-name/1", api_key=ROBOFLOW_API_KEY)
+#         logging.info("Using Roboflow model with API key.")
+#     except Exception as e:
+#         logging.error(f"Failed to load Roboflow model: {e}. Falling back to YOLOv8.")
+#         model = YOLO('D:\\Hackathons\\SE_hack\\Models\\Smart_Communal_Area_Surveillance\\yolov8s.pt')
+# else:
+#     if not INFERENCE_AVAILABLE:
+#         logging.info("Roboflow model not used due to missing inference-sdk.")
+#     elif not ROBOFLOW_API_KEY:
+#         logging.info("ROBOFLOW_API_KEY not found in .env file.")
+#     logging.info("Using YOLOv8 model.")
+#     model = YOLO('D:\\Hackathons\\SE_hack\\Models\\Smart_Communal_Area_Surveillance\\yolov8s.pt')
 
-# YOLOv8 COCO class names (for yolov8s.pt)
-COCO_CLASSES = [
-    'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat',
-    'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat',
-    'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack',
-    'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
-    'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket',
-    'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
-    'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake',
-    'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop',
-    'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink',
-    'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier',
-    'toothbrush'
-]
+# YOLOv8 COCO class names
+# COCO_CLASSES = [
+#     'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat',
+#     'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat',
+#     'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack',
+#     'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
+#     'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket',
+#     'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+#     'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake',
+#     'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop',
+#     'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink',
+#     'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier',
+#     'toothbrush'
+# ]
 
 # Initialize annotators
-box_annotator = sv.BoxAnnotator()
-label_annotator = sv.LabelAnnotator()
-heat_map_annotator = sv.HeatMapAnnotator()
+# box_annotator = sv.BoxAnnotator()
+# label_annotator = sv.LabelAnnotator()
+# heat_map_annotator = sv.HeatMapAnnotator()
 
 # Crowding thresholds
-OVERLAP_THRESHOLD_CROWDED = 0.5  # IoU > 50% for crowded
-OVERLAP_THRESHOLD_MODERATE = 0.2  # IoU > 20% for moderately crowded
-PERSON_COUNT_THRESHOLD = 10  # Max people before considering crowded
+# OVERLAP_THRESHOLD_CROWDED = 0.5
+# OVERLAP_THRESHOLD_MODERATE = 0.2
+# PERSON_COUNT_THRESHOLD = 10
 
 # Alert duration
-ALERT_DURATION = 60  # seconds
+# ALERT_DURATION = 60
 
 # Plateau detection parameters
-PLATEAU_WINDOW = 30  # Seconds to check for plateau
-PLATEAU_TOLERANCE = 1  # Allow ±1 variation in person count
-IOU_TOLERANCE = 0.05  # Allow ±0.05 variation in IoU
-HISTORY_SIZE = 300  # Max frames to store (~10s at 30fps)
+# PLATEAU_WINDOW = 30
+# PLATEAU_TOLERANCE = 1
+# IOU_TOLERANCE = 0.05
+# HISTORY_SIZE = 300
 
 # Log file setup
-LOG_FILE = "surveillance_log.txt"
-
-# Alert output dictionary
-alert_output_dict = {}
+# LOG_FILE = "surveillance_log.txt"
 
 # History for plateau detection
-count_history = deque(maxlen=HISTORY_SIZE)  # (timestamp, person_count, avg_iou)
+# count_history = deque(maxlen=HISTORY_SIZE)
 
 def log_event(timestamp, message):
     """Log events with timestamps to a file."""
@@ -94,16 +81,13 @@ def draw_alert_box(frame, text, position=(10, 100), bg_color=(0, 0, 255), text_c
     font_scale = 0.8
     thickness = 2
     
-    # Get text size
     (text_width, text_height), _ = cv2.getTextSize(text, font, font_scale, thickness)
     
-    # Draw background rectangle
     padding = 10
     bg_top_left = (position[0], position[1] - text_height - padding)
     bg_bottom_right = (position[0] + text_width + padding * 2, position[1] + padding)
     cv2.rectangle(frame, bg_top_left, bg_bottom_right, bg_color, -1)
     
-    # Draw text
     cv2.putText(frame, text, position, font, font_scale, text_color, thickness)
 
 def calculate_iou(box1, box2):
@@ -111,36 +95,31 @@ def calculate_iou(box1, box2):
     x1_1, y1_1, x2_1, y2_1 = box1
     x1_2, y1_2, x2_2, y2_2 = box2
     
-    # Calculate intersection coordinates
     x1_i = max(x1_1, x1_2)
     y1_i = max(y1_1, y1_2)
     x2_i = min(x2_1, x2_2)
     y2_i = min(y2_1, y2_2)
     
-    # Calculate intersection area
     if x2_i > x1_i and y2_i > y1_i:
         intersection = (x2_i - x1_i) * (y2_i - y1_i)
     else:
         intersection = 0.0
     
-    # Calculate union area
     area1 = (x2_1 - x1_1) * (y2_1 - y1_1)
     area2 = (x2_2 - x1_2) * (y2_2 - y1_2)
     union = area1 + area2 - intersection
     
-    # Calculate IoU
     return intersection / union if union > 0 else 0.0
 
-def calculate_crowding_level(detections, frame, timestamp, frame_count, alert_output_dict):
-    """Calculate crowding level and detect plateau, store alerts in alert_output_dict."""
-    person_detections = detections[detections.class_id == 0]  # Class 0 = person
+def calculate_crowding_level(detections, frame, timestamp, frame_count, alert_data):
+    """Calculate crowding level and detect plateau, store alerts in alert_data."""
+    person_detections = detections[detections.class_id == 0]
     num_people = len(person_detections)
     alerts = []
     now = time.time()
     
-    # Calculate IoU for overlapping bounding boxes
     if num_people > 1:
-        boxes = person_detections.xyxy  # [x1, y1, x2, y2]
+        boxes = person_detections.xyxy
         ious = []
         for i in range(len(boxes)):
             for j in range(i + 1, len(boxes)):
@@ -151,167 +130,157 @@ def calculate_crowding_level(detections, frame, timestamp, frame_count, alert_ou
     else:
         avg_iou = 0.0
     
-    # Update count history
     count_history.append((now, num_people, avg_iou))
     
-    # Determine crowding level and store alerts
     crowding_id = f"crowding_{frame_count}_{timestamp.replace(' ', '_')}"
     if avg_iou > OVERLAP_THRESHOLD_CROWDED or num_people > PERSON_COUNT_THRESHOLD:
         crowding_level = "Crowded"
         alert = "ALERT: Overcrowding detected!"
         alerts.append(alert)
         log_event(timestamp, f"{crowding_level} - {alert} (IoU: {avg_iou:.2f}, People: {num_people})")
-        if crowding_id not in alert_output_dict:
-            alert_output_dict[crowding_id] = []
-        alert_output_dict[crowding_id].append({
+        if crowding_id not in alert_data:
+            alert_data[crowding_id] = []
+        alert_data[crowding_id].append({
             "id": crowding_id,
             "title": "Overcrowding",
-            "description": f"Overcrowding detected with IoU: {avg_iou:.2f}, People: {num_people}",
-            "location": "Surveillance Area",
+            "description": f"Overcrowding detected with {num_people} people",
+            "location": "Quadrangle",
             "timestamp": datetime.fromtimestamp(now).isoformat(),
-            "last_seen": now
+            "last_seen": now,
         })
     elif avg_iou > OVERLAP_THRESHOLD_MODERATE:
         crowding_level = "Moderately Crowded"
         alert = "ALERT: Moderate crowding detected."
         alerts.append(alert)
         log_event(timestamp, f"{crowding_level} - {alert} (IoU: {avg_iou:.2f}, People: {num_people})")
-        if crowding_id not in alert_output_dict:
-            alert_output_dict[crowding_id] = []
-        alert_output_dict[crowding_id].append({
+        if crowding_id not in alert_data:
+            alert_data[crowding_id] = []
+        alert_data[crowding_id].append({
             "id": crowding_id,
             "title": "Moderate Crowding",
-            "description": f"Moderate crowding detected with IoU: {avg_iou:.2f}, People: {num_people}",
-            "location": "Surveillance Area",
+            "description": f"Moderate crowding detected with {num_people} people",
+            "location": "Quadrangle",
             "timestamp": datetime.fromtimestamp(now).isoformat(),
-            "last_seen": now
+            "last_seen": now,
         })
     else:
         crowding_level = "Normal"
         log_event(timestamp, f"{crowding_level} (IoU: {avg_iou:.2f}, People: {num_people})")
     
-    # # Check for plateau in crowding metrics
-    # recent_history = [(t, p, i) for t, p, i in count_history if now - t <= PLATEAU_WINDOW]
-    # if len(recent_history) >= 2:
-    #     person_counts = [p for _, p, _ in recent_history]
-    #     iou_values = [i for _, _, i in recent_history]
-    #     person_range = max(person_counts) - min(person_counts)
-    #     iou_range = max(iou_values) - min(iou_values)
-        
-    #     plateau_id = f"plateau_{frame_count}_{timestamp.replace(' ', '_')}"
-    #     if person_range <= PLATEAU_TOLERANCE and iou_range <= IOU_TOLERANCE:
-    #         alert = f"ALERT: Plateau detected with People: {num_people}, IoU: {avg_iou:.2f}"
-    #         alerts.append(alert)
-    #         log_event(timestamp, f"Plateau - {alert}")
-    #         if plateau_id not in alert_output_dict:
-    #             alert_output_dict[plateau_id] = []
-    #         alert_output_dict[plateau_id].append({
-    #             "id": plateau_id,
-    #             "title": "Plateau Detection",
-    #             "description": f"Stable crowding metrics detected: People: {num_people}, IoU: {avg_iou:.2f}",
-    #             "location": "Surveillance Area",
-    #             "timestamp": datetime.fromtimestamp(now).isoformat(),
-    #             "last_seen": now
-    #         })
-    
     return crowding_level, avg_iou, alerts
 
-def remove_expired_alerts(alert_output_dict):
+def remove_expired_alerts(alert_data):
     """Remove alerts that have expired based on ALERT_DURATION."""
     now = time.time()
     expired_ids = []
-    for alert_id, alerts in list(alert_output_dict.items()):
+    for alert_id, alerts in list(alert_data.items()):
         for alert in alerts:
             if now - alert["last_seen"] > ALERT_DURATION:
                 expired_ids.append(alert_id)
                 break
     for alert_id in expired_ids:
-        del alert_output_dict[alert_id]
+        del alert_data[alert_id]
 
-def process_frame(frame, frame_count, alert_output_dict):
+def process_frame(frame, frame_count, alert_data):
     """Process a single video frame."""
-    # Get current timestamp
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    # Run inference
-    if INFERENCE_AVAILABLE and ROBOFLOW_API_KEY and not isinstance(model, YOLO):
-        # Roboflow model inference
-        try:
-            results = model.infer(frame)
-            detections = sv.Detections.from_inference(results)
-        except Exception as e:
-            print(f"Roboflow inference failed: {e}. Falling back to YOLOv8 for this frame.")
-            results = model(frame)[0]
-            detections = sv.Detections.from_ultralytics(results)
-    else:
-        # YOLOv8 inference
-        results = model(frame)[0]
-        detections = sv.Detections.from_ultralytics(results)
     
-    # Filter detections (e.g., confidence > 0.5)
+    results = model(frame)[0]
+    detections = sv.Detections.from_ultralytics(results)
+    
     detections = detections[detections.confidence > 0.5]
     
-    # Calculate crowding level and get alerts
-    crowding_level, avg_iou, crowding_alerts = calculate_crowding_level(detections, frame, timestamp, frame_count, alert_output_dict)
+    crowding_level, avg_iou, crowding_alerts = calculate_crowding_level(detections, frame, timestamp, frame_count, alert_data)
     
-    # Remove expired alerts
-    remove_expired_alerts(alert_output_dict)
+    remove_expired_alerts(alert_data)
     
-    # Annotate frame with bounding boxes and labels
     labels = [f"{COCO_CLASSES[class_id] if class_id < len(COCO_CLASSES) else 'Unknown'} ({conf:.2f})" 
               for class_id, conf in zip(detections.class_id, detections.confidence)]
     annotated_frame = box_annotator.annotate(scene=frame.copy(), detections=detections)
     annotated_frame = label_annotator.annotate(scene=annotated_frame, detections=detections, labels=labels)
     
-    # Add timestamp
     cv2.putText(annotated_frame, f"Timestamp: {timestamp}", 
                 (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
     
-    # Add crowding level text
     cv2.putText(annotated_frame, f"Crowding: {crowding_level} (IoU: {avg_iou:.2f})", 
                 (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     
-    # Add alert pop-ups
     all_alerts = crowding_alerts
     for i, alert in enumerate(all_alerts):
         draw_alert_box(annotated_frame, alert, position=(10, 150 + i * 60))
     
-    # Generate and annotate heatmap
     heatmap_frame = heat_map_annotator.annotate(scene=frame.copy(), detections=detections)
     
     return annotated_frame, heatmap_frame
 
-def get_video_path():
-    """Prompt user for video file path and validate it."""
-    while True:
-        video_path = input("Enter the path to the video file (e.g., C:\\path\\to\\video.mp4): ")
-        if os.path.isfile(video_path):
-            return video_path
-        print(f"Error: File '{video_path}' does not exist. Please try again.")
-
-def main():
+def main(video_path, alert_data):
     """Process video, display live, and save output."""
-    # Get video path from user
-    video_path = get_video_path()
+    global model 
+    model = YOLO('D:\\Hackathons\\SE_hack\\Models\\Smart_Communal_Area_Surveillance\\yolov8s.pt')
+    global COCO_CLASSES
+    COCO_CLASSES = [
+        'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat',
+        'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat',
+        'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack',
+        'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
+        'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket',
+        'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+        'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake',
+        'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop',
+        'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink',
+        'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier',
+        'toothbrush'
+    ]
+    global box_annotator
+    global label_annotator
+    global heat_map_annotator
+    box_annotator = sv.BoxAnnotator()
+    label_annotator = sv.LabelAnnotator()
+    heat_map_annotator = sv.HeatMapAnnotator()
+    
+    global OVERLAP_THRESHOLD_CROWDED
+    global OVERLAP_THRESHOLD_MODERATE
+    global PERSON_COUNT_THRESHOLD
+    OVERLAP_THRESHOLD_CROWDED = 0.5
+    OVERLAP_THRESHOLD_MODERATE = 0.2
+    PERSON_COUNT_THRESHOLD = 10
+    
+    global ALERT_DURATION
+    ALERT_DURATION = 60
+    
+    global PLATEAU_WINDOW
+    global PLATEAU_TOLERANCE
+    global IOU_TOLERANCE
+    global HISTORY_SIZE
+    PLATEAU_WINDOW = 30
+    PLATEAU_TOLERANCE = 1
+    IOU_TOLERANCE = 0.05
+    HISTORY_SIZE = 300
+    
+    global LOG_FILE
+    LOG_FILE = "surveillance_log.txt"
+    
+    global count_history
+    count_history = deque(maxlen=HISTORY_SIZE)
+    
+    logging.debug(f"main called with video_path={video_path}, alert_data={alert_data}")
+    
     output_path = "output_surveillance.mp4"
     
-    # Initialize log file
     if os.path.exists(LOG_FILE):
         os.remove(LOG_FILE)
     
-    # Open video
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        print(f"Error: Could not open video '{video_path}'")
-        return
+        logging.error(f"Could not open video '{video_path}'")
+        return None
     
-    # Get video properties
     fps = cap.get(cv2.CAP_PROP_FPS)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     video_info = sv.VideoInfo(width=width, height=height, fps=fps)
     
-    # Initialize video writer
     with sv.VideoSink(target_path=output_path, video_info=video_info) as sink:
         frame_count = 0
         while cap.isOpened():
@@ -319,30 +288,20 @@ def main():
             if not ret:
                 break
             
-            # Process frame
-            annotated_frame, heatmap_frame = process_frame(frame, frame_count, alert_output_dict)
+            annotated_frame, heatmap_frame = process_frame(frame, frame_count, alert_data)
             
-            # Combine annotated and heatmap frames
             combined_frame = np.hstack((annotated_frame, heatmap_frame))
             
-            # Display live
             cv2.imshow('Surveillance', combined_frame)
             
-            # Write to output video
             sink.write_frame(frame=combined_frame)
             
-            # Break on 'q' key press
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
             
             frame_count += 1
         
-        # Release resources
         cap.release()
         cv2.destroyAllWindows()
     
-    # Print final alerts
-    print("Final Alerts:", alert_output_dict)
-
-if __name__ == "__main__":
-    main()
+    logging.info(f"Final Alerts: {alert_data}")

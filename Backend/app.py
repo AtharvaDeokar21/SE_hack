@@ -10,10 +10,14 @@ from flask_cors import CORS
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from Models.loitering_detector.detect_and_track import run_loitering_detection, alert_data
-from Models.Smart_Communal_Area_Surveillance.surveillance import main, alert_output_dict
+from Models.Smart_Communal_Area_Surveillance.surveillance import main  # Import only main
 
 app = Flask(__name__)
 CORS(app)
+
+# Global dictionary for all alerts
+alert_data = {}
+
 # Use absolute path for the folder to watch
 VIDEO_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), 'location', 'lake'))
 VIDEO_FOLDER1 = os.path.abspath(os.path.join(os.path.dirname(__file__), 'location', 'quadrangle'))
@@ -21,7 +25,7 @@ detection_running = False
 
 class VideoUploadHandler(FileSystemEventHandler):
     def on_created(self, event):
-        global detection_running
+        global detection_running, alert_data
         if event.is_directory or not event.src_path.endswith(('.mp4', '.avi')):
             return
         if not detection_running:
@@ -32,13 +36,13 @@ class VideoUploadHandler(FileSystemEventHandler):
 
 class SurveillanceVideoUploadHandler(FileSystemEventHandler):
     def on_created(self, event):
-        global detection_running
+        global detection_running, alert_data
         if event.is_directory or not event.src_path.endswith(('.mp4', '.avi')):
             return
         if not detection_running:
             detection_running = True
             print(f"[INFO] Detected new video (surveillance): {event.src_path}")
-            thread = Thread(target=main, args=(event.src_path, alert_output_dict))
+            thread = Thread(target=main, args=(event.src_path, alert_data))
             thread.start()
             thread.join()  # Wait for thread to finish before allowing new detection
             detection_running = False
@@ -58,6 +62,7 @@ observer.schedule(VideoUploadHandler(), path=VIDEO_FOLDER, recursive=False)
 observer.start()
 observer1.schedule(SurveillanceVideoUploadHandler(), path=VIDEO_FOLDER1, recursive=False)
 observer1.start()
+
 @app.route('/get_alerts', methods=['GET'])
 def get_alerts():
     global alert_data
@@ -71,3 +76,5 @@ if __name__ == '__main__':
     finally:
         observer.stop()
         observer.join()
+        observer1.stop()
+        observer1.join()

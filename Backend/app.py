@@ -13,6 +13,7 @@ from Models.loitering_detector.detect_and_track import run_loitering_detection, 
 from Models.Smart_Communal_Area_Surveillance.surveillance import main  # Import only main
 from Models.gender.roboflow_detect import run_gender_alert_detection  # ✅ Add import
 from Models.security_staff_vigilance.drowsiness_yawn import run_drowsiness_detection
+from Models.violence_model.violence_pred import predict_realtime_fast
 
 app = Flask(__name__)
 CORS(app)
@@ -25,6 +26,7 @@ VIDEO_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), 'location
 VIDEO_FOLDER1 = os.path.abspath(os.path.join(os.path.dirname(__file__), 'location', 'quadrangle'))
 VIDEO_FOLDER2 = os.path.abspath(os.path.join(os.path.dirname(__file__), 'location', 'entrance'))
 VIDEO_FOLDER3 = os.path.abspath(os.path.join(os.path.dirname(__file__), 'location', 'cabin'))
+VIDEO_FOLDER4 = os.path.abspath(os.path.join(os.path.dirname(__file__), 'location', 'lobby'))
 # ✅ New folder
 
 detection_running = False
@@ -81,12 +83,25 @@ class SleepVideoUploadHandler(FileSystemEventHandler):
             thread.start()
             thread.join()
             detection_running = False
+class ViolenceVideoUploadHandler(FileSystemEventHandler):
+    def on_created(self, event):
+        global detection_running, alert_data
+        if event.is_directory or not event.src_path.endswith(('.mp4', '.avi')):
+            return
+        if not detection_running:
+            detection_running = True
+            print(f"[INFO] Detected new video (violence detection): {event.src_path}")
+            thread = Thread(target=predict_realtime_fast, args=(event.src_path, alert_data))
+            thread.start()
+            thread.join()
+            detection_running = False
 
 # Start observers
 observer = Observer()
 observer1 = Observer()
 observer2 = Observer()  # ✅ New observer
 observer3 = Observer()
+observer4 = Observer()
 
 # Ensure folders exist
 for folder in [VIDEO_FOLDER, VIDEO_FOLDER1, VIDEO_FOLDER2]:
@@ -97,11 +112,13 @@ observer.schedule(VideoUploadHandler(), path=VIDEO_FOLDER, recursive=False)
 observer1.schedule(SurveillanceVideoUploadHandler(), path=VIDEO_FOLDER1, recursive=False)
 observer2.schedule(GenderVideoUploadHandler(), path=VIDEO_FOLDER2, recursive=False)  # ✅
 observer3.schedule(SleepVideoUploadHandler(), path=VIDEO_FOLDER3, recursive=False)
+observer4.schedule(ViolenceVideoUploadHandler(), path=VIDEO_FOLDER4, recursive=False)
 
 observer.start()
 observer1.start()
 observer2.start()
 observer3.start()
+observer4.start()
 
 @app.route('/get_alerts', methods=['GET'])
 def get_alerts():
@@ -122,3 +139,5 @@ if __name__ == '__main__':
         observer2.join()
         observer3.stop()
         observer3.join()
+        observer4.stop()
+        observer4.join()

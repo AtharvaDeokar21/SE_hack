@@ -35,10 +35,13 @@ def run_gender_alert_detection(video_path, alert_output_dict):
 
         for (x, y, w, h) in faces:
             face_img = frame[y:y+h, x:x+w]
-            face_img_path = f'temp_face_{frame_count}.png'
-            cv2.imwrite(face_img_path, face_img)
 
-            result = CLIENT.infer(face_img_path, model_id="gender-detection-qiyyg/2")
+            # Skip saving the image to disk
+            # face_img_path = f'temp_face_{frame_count}.png'  # Removed saving part
+            # cv2.imwrite(face_img_path, face_img)  # Removed this line
+
+            # Continue with inference without saving the image to disk
+            result = CLIENT.infer(face_img, model_id="gender-detection-qiyyg/2")
 
             if 'predictions' in result and result['predictions']:
                 prediction = result['predictions'][0]
@@ -69,6 +72,7 @@ def run_gender_alert_detection(video_path, alert_output_dict):
             })
 
             print(f"[ALERT] Female detected continuously. Alert generated at {timestamp}")
+            break
 
         # Optional: draw visuals
         cv2.imshow("Gender Detection", frame)

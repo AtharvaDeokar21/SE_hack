@@ -20,7 +20,7 @@ def click_event(event, x, y, flags, param):
         cv2.imshow("Draw Zone", img)
 
 # Load image from video
-cap = cv2.VideoCapture("demo.mp4")
+cap = cv2.VideoCapture("demo2.mp4")
 ret, frame = cap.read()
 cap.release()
 

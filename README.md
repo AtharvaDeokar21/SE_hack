@@ -1,4 +1,4 @@
-# 👁️‍🗨️ **ThirdEye AI – Smart Surveillance for Safer Hostels**
+# 👁️‍🗨️ **ThirdEye – Smart Surveillance for Safer Hostels**
 
 **Revolutionizing hostel security with intelligent, real-time video analytics — no new hardware required.**
 
@@ -8,7 +8,7 @@
 
 Hostels, often housing dozens to hundreds of residents, face continuous security challenges—especially during off-hours when manual vigilance dips. Traditional CCTV setups, while omnipresent, burden security personnel with hours of passive footage that’s difficult to monitor in real time.
 
-**ThirdEye AI** transforms this outdated paradigm by injecting intelligence into existing surveillance systems. It harnesses **cutting-edge computer vision, deep learning models, and real-time alerting** mechanisms to enable **proactive, responsive, and context-aware monitoring**—dramatically improving safety while reducing operational overhead.
+**ThirdEye** transforms this outdated paradigm by injecting intelligence into existing surveillance systems. It harnesses **cutting-edge computer vision, deep learning models, and real-time alerting** mechanisms to enable **proactive, responsive, and context-aware monitoring**—dramatically improving safety while reducing operational overhead.
 
 ---
 

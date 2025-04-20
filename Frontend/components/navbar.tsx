@@ -57,7 +57,7 @@ export default function Navbar() {
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center space-x-2">
           <Shield className="h-8 w-8 text-alert-critical" />
-          <span className="font-bold text-xl">SecureWatch AI</span>
+          <span className="font-bold text-xl">ThirdEye</span>
         </Link>
 
         {/* Desktop Navigation */}

@@ -9,9 +9,8 @@ import { AuthProvider } from "@/components/auth-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "SecureWatch AI | Residential Hostel Security Monitoring",
+  title: "ThirdEye | Residential Hostel Security Monitoring",
   description: "AI-powered security monitoring system for residential hostels",
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({

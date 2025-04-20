@@ -50,7 +50,7 @@ export default function LoginPage() {
       >
         <div className="text-center mb-8">
           <Shield className="h-12 w-12 text-alert-critical mx-auto mb-4" />
-          <h1 className="text-3xl font-bold">SecureWatch AI</h1>
+          <h1 className="text-3xl font-bold">ThirdEye</h1>
           <p className="text-muted-foreground mt-2">Hostel Security Monitoring System</p>
         </div>
 

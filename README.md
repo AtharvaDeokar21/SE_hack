@@ -117,6 +117,10 @@ Ensures responsible AI surveillance:
 - **Anonymized alerts** where detailed footage isn't required.
 - **Role-based access controls** to ensure only authorized personnel can review sensitive footage.
 
+### 🛡️ 8. **Gender Detection**
+
+- Gender Detection at hostel entrance.
+
 ---
 
 ## 🧰 **Tech Stack**
@@ -124,7 +128,7 @@ Ensures responsible AI surveillance:
 | Module                  | Tools & Technologies Used                                      |
 | ----------------------- | -------------------------------------------------------------- |
 | **Model Training**      | Roboflow, YOLOv8, Custom Datasets                              |
-| **Real-Time Inference** | OpenCV, MediaPipe, DeepSort                                    |
+| **Real-Time Inference** | OpenCV, DeepSort                                               |
 | **Backend & Alerting**  | Flask and parallel event streams and Twilio For Alert messages |
 | **Frontend Dashboard**  | Next.js                                                        |
 

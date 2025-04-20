@@ -20,6 +20,21 @@ const BACKEND_URL = "http://127.0.0.1:5000//get_alerts"
 // Polling interval in milliseconds (30 seconds)
 const POLLING_INTERVAL = 30000
 
+// Local storage keys
+const STORAGE_KEY_ALERTS = "securewatch_alerts"
+const STORAGE_KEY_EVENTS = "securewatch_events"
+
+// Alert severity mapping based on title
+const ALERT_SEVERITY_MAP: Record<string, "critical" | "medium" | "resolved"> = {
+  "Female Detected": "medium",
+  Loitering: "critical",
+  "Watchman yawning": "medium",
+  "Watchman drowsy": "medium",
+  Overcrowding: "critical",
+  "Moderate Crowding": "medium",
+  Violence: "critical",
+}
+
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
@@ -38,11 +53,90 @@ export default function DashboardPage() {
     }
   }, [user, authLoading, router])
 
+  // Load alerts and events from local storage on initial load
+  useEffect(() => {
+    if (!user) return
+
+    try {
+      // Load alerts from local storage
+      const storedAlertsJson = localStorage.getItem(STORAGE_KEY_ALERTS)
+      if (storedAlertsJson) {
+        const storedAlerts = JSON.parse(storedAlertsJson)
+        // Convert string dates back to Date objects
+        const parsedAlerts = storedAlerts.map((alert: any) => ({
+          ...alert,
+          timestamp: new Date(alert.timestamp),
+        }))
+        setAlerts(parsedAlerts)
+      }
+
+      // Load events from local storage
+      const storedEventsJson = localStorage.getItem(STORAGE_KEY_EVENTS)
+      if (storedEventsJson) {
+        const storedEvents = JSON.parse(storedEventsJson)
+        // Convert string dates back to Date objects
+        const parsedEvents = storedEvents.map((event: any) => ({
+          ...event,
+          timestamp: new Date(event.timestamp),
+        }))
+        setEvents(parsedEvents)
+      }
+
+      // If we loaded data from local storage, we can set loading to false
+      if (storedAlertsJson) {
+        setIsLoading(false)
+      }
+    } catch (error) {
+      console.error("Error loading data from local storage:", error)
+      // If there's an error loading from local storage, we'll still fetch from the backend
+    }
+  }, [user])
+
+  // Save alerts to local storage whenever they change
+  useEffect(() => {
+    if (alerts.length > 0) {
+      try {
+        localStorage.setItem(STORAGE_KEY_ALERTS, JSON.stringify(alerts))
+      } catch (error) {
+        console.error("Error saving alerts to local storage:", error)
+      }
+    }
+  }, [alerts])
+
+  // Save events to local storage whenever they change
+  useEffect(() => {
+    if (events.length > 0) {
+      try {
+        localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events))
+      } catch (error) {
+        console.error("Error saving events to local storage:", error)
+      }
+    }
+  }, [events])
+
   // Function to convert backend alert format to our Alert type
-  const convertBackendAlert = (backendAlert: any, severity: "critical" | "medium" | "resolved" = "critical"): Alert => {
+  const convertBackendAlert = (backendAlert: any): Alert => {
+    const title = backendAlert.title || "Unknown Alert"
+
+    // Determine severity based on the title
+    let severity: "critical" | "medium" | "resolved" = "medium" // Default to medium
+
+    // Check if the title exists in our mapping
+    if (title in ALERT_SEVERITY_MAP) {
+      severity = ALERT_SEVERITY_MAP[title]
+    } else {
+      // For titles not in our mapping, check for partial matches
+      const lowerTitle = title.toLowerCase()
+      if (lowerTitle.includes("critical") || lowerTitle.includes("emergency")) {
+        severity = "critical"
+      } else if (lowerTitle.includes("resolved") || lowerTitle.includes("cleared")) {
+        severity = "resolved"
+      }
+    }
+
     return {
       id: backendAlert.id || `alert-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      title: backendAlert.title || "Unknown Alert",
+      title: title,
       description: backendAlert.description || "No description provided",
       location: backendAlert.location || "Unknown Location",
       locationType: backendAlert.location === "Lake" || backendAlert.location === "Cabin" ? "outside" : "within",
@@ -85,7 +179,16 @@ export default function DashboardPage() {
         // If we have new alerts, update the state
         if (newAlerts.length > 0) {
           // Add new alerts to the state
-          setAlerts((prevAlerts) => [...newAlerts, ...prevAlerts])
+          setAlerts((prevAlerts) => {
+            const updatedAlerts = [...newAlerts, ...prevAlerts]
+            // Save to local storage (this is redundant with the useEffect, but ensures immediate save)
+            try {
+              localStorage.setItem(STORAGE_KEY_ALERTS, JSON.stringify(updatedAlerts))
+            } catch (error) {
+              console.error("Error saving alerts to local storage:", error)
+            }
+            return updatedAlerts
+          })
 
           // Create timeline events for the new alerts
           const newEvents: TimelineEvent[] = newAlerts.map((alert) => ({
@@ -97,14 +200,23 @@ export default function DashboardPage() {
           }))
 
           // Add new events to the timeline
-          setEvents((prevEvents) => [...newEvents, ...prevEvents])
+          setEvents((prevEvents) => {
+            const updatedEvents = [...newEvents, ...prevEvents]
+            // Save to local storage (this is redundant with the useEffect, but ensures immediate save)
+            try {
+              localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(updatedEvents))
+            } catch (error) {
+              console.error("Error saving events to local storage:", error)
+            }
+            return updatedEvents
+          })
 
           // Show a toast notification for each new alert
           newAlerts.forEach((alert) => {
             toast({
               title: alert.title,
               description: `${alert.description} at ${alert.location}`,
-              variant: "destructive",
+              variant: alert.severity === "critical" ? "destructive" : "default",
               action: <ToastAction altText="View">View</ToastAction>,
             })
           })
@@ -128,7 +240,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user) return
 
-    // Initial fetch
+    // Initial fetch (even if we loaded from local storage, we want to check for new alerts)
     fetchAlerts()
 
     // Set up interval
@@ -166,6 +278,27 @@ export default function DashboardPage() {
       setFilteredAlerts(roleFilteredAlerts.filter((alert) => alert.severity === alertFilter))
     }
   }, [alerts, alertFilter, user])
+
+  // Function to clear local storage data
+  const clearStoredData = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY_ALERTS)
+      localStorage.removeItem(STORAGE_KEY_EVENTS)
+      setAlerts([])
+      setEvents([])
+      toast({
+        title: "Data cleared",
+        description: "All stored alerts and events have been cleared.",
+      })
+    } catch (error) {
+      console.error("Error clearing local storage:", error)
+      toast({
+        title: "Error",
+        description: "Failed to clear stored data.",
+        variant: "destructive",
+      })
+    }
+  }
 
   // Show loading state while checking authentication
   if (authLoading) {
@@ -236,12 +369,23 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main content - 2/3 width on desktop */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Alerts Feed */}
+            {/* Map View - Now first */}
             <motion.div
               className="bg-card rounded-lg border border-border p-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <h2 className="text-xl font-bold mb-4">Facility Map</h2>
+              {isLoading ? <MapSkeleton /> : <MapView alerts={filteredAlerts} onAlertClick={handleAlertClick} />}
+            </motion.div>
+
+            {/* Alerts Feed - Now second */}
+            <motion.div
+              className="bg-card rounded-lg border border-border p-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
             >
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                 <div className="flex items-center">
@@ -256,22 +400,31 @@ export default function DashboardPage() {
                     </div>
                   )}
                 </div>
-                <Tabs defaultValue="all" className="w-full md:w-auto">
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="all" onClick={() => setAlertFilter("all")}>
-                      All
-                    </TabsTrigger>
-                    <TabsTrigger value="critical" onClick={() => setAlertFilter("critical")}>
-                      Critical
-                    </TabsTrigger>
-                    <TabsTrigger value="medium" onClick={() => setAlertFilter("medium")}>
-                      Medium
-                    </TabsTrigger>
-                    <TabsTrigger value="resolved" onClick={() => setAlertFilter("resolved")}>
-                      Resolved
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
+                <div className="flex items-center gap-2">
+                  <Tabs defaultValue="all" className="w-full md:w-auto">
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="all" onClick={() => setAlertFilter("all")}>
+                        All
+                      </TabsTrigger>
+                      <TabsTrigger value="critical" onClick={() => setAlertFilter("critical")}>
+                        Critical
+                      </TabsTrigger>
+                      <TabsTrigger value="medium" onClick={() => setAlertFilter("medium")}>
+                        Medium
+                      </TabsTrigger>
+                      <TabsTrigger value="resolved" onClick={() => setAlertFilter("resolved")}>
+                        Resolved
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                  <button
+                    onClick={clearStoredData}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    title="Clear all stored alerts"
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -287,17 +440,6 @@ export default function DashboardPage() {
                   </div>
                 )}
               </div>
-            </motion.div>
-
-            {/* Map View */}
-            <motion.div
-              className="bg-card rounded-lg border border-border p-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <h2 className="text-xl font-bold mb-4">Facility Map</h2>
-              {isLoading ? <MapSkeleton /> : <MapView alerts={filteredAlerts} onAlertClick={handleAlertClick} />}
             </motion.div>
           </div>
 

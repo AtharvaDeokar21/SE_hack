@@ -16,7 +16,7 @@ export default function MapView({ alerts, onAlertClick }: MapViewProps) {
     "North Block": { x: 50, y: 20 },
     "South Block": { x: 50, y: 80 },
     "Quadrangle": { x: 70, y: 60 },
-    "Library": { x: 30, y: 50 },
+    "Lobby": { x: 30, y: 50 },
     "Lake": { x: 85, y: 15 },
     "Cabin": { x: 10, y: 90 },
   }

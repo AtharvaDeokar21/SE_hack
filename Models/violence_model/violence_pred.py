@@ -7,6 +7,7 @@ from Backend.whatsapp_alerts import send_whatsapp_alert
 alert_data = {}
 flag = 0
 def predict_realtime_fast(video_path, alert_data, prediction_interval=10):
+    global flag
     model = load_model('D:\\Hackathons\\SE_hack\\Models\\violence_model\\violence_detection_resnet50.h5')
 
     cap = cv2.VideoCapture(video_path)  # ✅ Use video path instead of webcam
@@ -51,7 +52,7 @@ def predict_realtime_fast(video_path, alert_data, prediction_interval=10):
                         "timestamp": now
                     }
                 ]
-                if(flag == 0):
+                if flag == 0:
                     send_whatsapp_alert("Alert! Violent activity detected in Lobby.")
                     flag = 1
 

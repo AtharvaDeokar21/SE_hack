@@ -16,7 +16,7 @@ export function generateMockAlerts(count = 10) {
     { name: "Lake", type: "outside" as const },
     { name: "Cabin", type: "outside" as const },
     { name: "Quadrangle", type: "within" as const },
-    { name: "Library", type: "within" as const },
+    { name: "Lobby", type: "within" as const },
   ]
 
   const alertTypes = [

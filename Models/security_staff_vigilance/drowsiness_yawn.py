@@ -97,7 +97,7 @@ def run_drowsiness_detection(video_path, alert_output_dict):
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
                     alert_output_dict[200] = [{
                         "id": 200,
-                        "title": "Drowsiness",
+                        "title": "Watchman drowsy",
                         "description": "Drowsiness detected",
                         "location": "Cabin",
                         "timestamp": now
@@ -118,7 +118,7 @@ def run_drowsiness_detection(video_path, alert_output_dict):
                     t.start()
                     alert_output_dict[45] = [{
                         "id": 45,
-                        "title": "Yawn",
+                        "title": "Watchman yawning",
                         "description": "Yawn detected",
                         "location": "Cabin",
                         "timestamp": now
